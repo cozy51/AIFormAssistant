@@ -174,13 +174,20 @@ summary svg {
   margin-top: 3px;
 }
 .brand-icon {
-  background: var(--primary);
-  color: var(--panel);
+  background: #176b58;
   height: 41px;
   width: 41px;
-  border-radius: 12px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  overflow: hidden;
   display: grid;
   place-items: center;
+  box-shadow: 0 2px 5px #174f4112;
+}
+.brand-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .workspace-label {
   font-size: 10px;

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   LayoutDashboard,
@@ -183,8 +184,14 @@ export function Workspace() {
             navigate("dashboard");
           }}
         >
-          <span className="brand-icon">
-            <Files size={23} />
+          <span className="brand-icon" aria-hidden="true">
+            <Image
+              src="/brand/icon.png"
+              alt=""
+              width={41}
+              height={41}
+              priority
+            />
           </span>
           <div>
             AI帳票<span>ASSISTANT</span>
