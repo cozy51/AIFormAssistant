@@ -22,6 +22,7 @@ import {
 import { db, defaultSettings, removeTemplate, removeCase } from "@/lib/db";
 import { uid, now, type Template, type Case } from "@/lib/schema";
 import { api } from "@/lib/api";
+import { installSyncHooks, startSync, subscribeSync } from "@/lib/sync";
 import { Button } from "./ui/button";
 import { TemplateEditor } from "./template-editor";
 import { CaseEditor } from "./case-editor";
@@ -43,6 +44,7 @@ export function Workspace() {
       authenticated: false,
       geminiConfigured: false,
       googleConfigured: false,
+      storeFolder: "",
       model: "gemini-2.5-flash",
     }),
     [message, setMessage] = useState(""),
@@ -63,6 +65,18 @@ export function Workspace() {
       setMessage((e as Error).message);
     }
   }
+  useEffect(() => {
+    installSyncHooks();
+    let last = "";
+    return subscribeSync((s) => {
+      if (s.state === "error" && s.message && s.message !== last)
+        setMessage(s.message);
+      last = s.state === "error" ? s.message || "" : "";
+    });
+  }, []);
+  useEffect(() => {
+    if (connection.authenticated && connection.storeFolder) void startSync();
+  }, [connection.authenticated, connection.storeFolder]);
   useEffect(() => {
     const bootstrap = async () => {
       await refresh();

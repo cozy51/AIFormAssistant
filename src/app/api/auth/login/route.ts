@@ -15,7 +15,8 @@ export async function GET() {
       client_id: process.env.GOOGLE_CLIENT_ID,
       redirect_uri: origin() + "/api/auth/callback",
       response_type: "code",
-      scope: "openid email https://www.googleapis.com/auth/drive.readonly",
+      scope:
+        "openid email https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file",
       access_type: "offline",
       prompt: "consent",
       state,

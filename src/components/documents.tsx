@@ -193,10 +193,13 @@ export function Documents({
           <div className="document-top">
             <FileText size={21} />
             <div className="grow">
-              <strong>{d.name}</strong>
+              <strong title={d.name}>{d.name}</strong>
               <div className="muted small">
                 {d.pageCount}ページ · {(d.size / 1024 / 1024).toFixed(2)} MB ·
-                更新 {new Date(d.modifiedTime).toLocaleString("ja-JP")}
+                更新 {new Date(d.modifiedTime).toLocaleString("ja-JP")} · 解析{" "}
+                {d.analyzedAt
+                  ? new Date(d.analyzedAt).toLocaleString("ja-JP")
+                  : "—"}
               </div>
             </div>
             <span
@@ -210,13 +213,6 @@ export function Documents({
                     ? "要再確認"
                     : "未解析"}
             </span>
-          </div>
-          <div className="small muted mono">{d.id}</div>
-          <div className="small muted">
-            最終解析：
-            {d.analyzedAt
-              ? new Date(d.analyzedAt).toLocaleString("ja-JP")
-              : "—"}
           </div>
           {d.error && <p className="warning">{d.error}</p>}
           <div className="actions">

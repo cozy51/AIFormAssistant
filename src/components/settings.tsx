@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Upload, Trash2, RefreshCw } from "lucide-react";
 import { db, backup, importBackup } from "@/lib/db";
 import {
@@ -9,13 +9,28 @@ import {
   type Backup,
 } from "@/lib/schema";
 import { api, downloadJson } from "@/lib/api";
+import {
+  markChanged,
+  subscribeSync,
+  syncNow,
+  type SyncStatus,
+} from "@/lib/sync";
 import { Button } from "./ui/button";
 export type Connection = {
   authenticated: boolean;
   email?: string;
   geminiConfigured: boolean;
   googleConfigured: boolean;
+  storeFolder: string;
   model: string;
+};
+type Usage = { month: string; tokens: number; calls: number; limit: number };
+const syncLabels: Record<SyncStatus["state"], string> = {
+  off: "未同期",
+  idle: "保存済み",
+  saving: "同期中…",
+  dirty: "未保存の変更あり",
+  error: "エラー",
 };
 export function SettingsView({
   settings,
@@ -33,7 +48,17 @@ export function SettingsView({
     [pending, setPending] = useState<Backup | null>(null),
     [duplicates, setDuplicates] = useState(0),
     [replace, setReplace] = useState(false),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [sync, setSync] = useState<SyncStatus>({ state: "off" }),
+    [usage, setUsage] = useState<Usage | null>(null);
+  useEffect(() => subscribeSync(setSync), []);
+  async function loadUsage() {
+    try {
+      setUsage(await api<Usage>("/api/usage"));
+    } catch (e) {
+      notify((e as Error).message);
+    }
+  }
   async function read(file?: File) {
     if (!file) return;
     try {
@@ -121,6 +146,96 @@ export function SettingsView({
           )}
           <p className="small muted">
             OAuth設定はサーバー環境変数で管理します。秘密情報をブラウザに保存しません。
+          </p>
+        </section>
+        <section className="panel field-stack">
+          <h2>Drive への保存</h2>
+          {connection.storeFolder ? (
+            <>
+              <p>
+                同期状態：
+                <span
+                  className={`badge ${sync.state === "idle" ? "success" : ""}`}
+                >
+                  {connection.authenticated ? syncLabels[sync.state] : "未接続"}
+                </span>
+              </p>
+              {sync.savedAt && (
+                <p className="small muted">
+                  最終同期：{new Date(sync.savedAt).toLocaleString("ja-JP")}
+                </p>
+              )}
+              {sync.state === "error" && sync.message && (
+                <p className="warning">{sync.message}</p>
+              )}
+              <p className="small muted">
+                テンプレート・案件・文章・PDF解析結果・設定を、変更のたびに
+                Drive の保存先フォルダへ自動保存します。別の端末でも Google
+                に接続すると同じデータを読み込みます。
+              </p>
+              <div className="actions">
+                <Button
+                  variant="outline"
+                  disabled={
+                    !connection.authenticated || sync.state === "saving"
+                  }
+                  onClick={() => void syncNow()}
+                >
+                  <RefreshCw size={15} />
+                  今すぐ同期
+                </Button>
+                <a
+                  className="text-link small"
+                  href={`https://drive.google.com/drive/folders/${connection.storeFolder}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  保存先フォルダを開く
+                </a>
+              </div>
+            </>
+          ) : (
+            <p className="warning">
+              保存先フォルダが未設定のため、データはこのブラウザ内にだけ保存されます。管理者が環境変数
+              DRIVE_FOLDER_ID を設定してください。
+            </p>
+          )}
+          <h3>今月のAI使用量</h3>
+          {usage ? (
+            <>
+              <p>
+                {usage.tokens.toLocaleString("ja-JP")}
+                {usage.limit
+                  ? ` / ${usage.limit.toLocaleString("ja-JP")} トークン（${Math.min(100, Math.round((usage.tokens / usage.limit) * 100))}%）`
+                  : " トークン（上限なし）"}
+                ・{usage.calls}回
+              </p>
+              {usage.limit > 0 && (
+                <meter
+                  min={0}
+                  max={usage.limit}
+                  high={usage.limit * 0.8}
+                  value={Math.min(usage.tokens, usage.limit)}
+                  style={{ width: "100%" }}
+                />
+              )}
+            </>
+          ) : (
+            <p className="small muted">
+              使用量は Drive の保存先フォルダに記録します。
+            </p>
+          )}
+          <Button
+            variant="outline"
+            disabled={!connection.authenticated || !connection.storeFolder}
+            onClick={() => void loadUsage()}
+          >
+            使用量を確認
+          </Button>
+          <p className="small muted">
+            上限に達するとその月のAI処理を停止します。上限は環境変数
+            GEMINI_MONTHLY_TOKEN_LIMIT で変更できます。Google
+            側の請求額の上限・予算アラートも併せて設定してください。
           </p>
         </section>
         <section className="panel field-stack">
@@ -321,7 +436,9 @@ export function SettingsView({
             onClick={async () => {
               if (
                 !confirm(
-                  "このブラウザ内のすべてのテンプレート・案件・解析・履歴・設定を削除します。バックアップは取得済みですか？",
+                  connection.storeFolder
+                    ? "このブラウザと Drive の保存先にある、すべてのテンプレート・案件・解析・履歴・設定を削除します。バックアップは取得済みですか？"
+                    : "このブラウザ内のすべてのテンプレート・案件・解析・履歴・設定を削除します。バックアップは取得済みですか？",
                 )
               )
                 return;
@@ -341,7 +458,8 @@ export function SettingsView({
                     ]);
                   },
                 );
-                notify("端末内のデータを削除しました。");
+                markChanged();
+                notify("保存データを削除しました。");
               } catch {
                 notify("データを削除できませんでした。");
               }

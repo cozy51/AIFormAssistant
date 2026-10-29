@@ -934,14 +934,13 @@ input[type="checkbox"] {
   padding: 10px 0;
 }
 .document {
-  padding: 16px 0;
+  padding: 10px 0;
   border-top: 1px solid var(--line);
 }
 .document-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 5px;
 }
 .document-top > svg {
   color: var(--primary);
@@ -952,8 +951,11 @@ input[type="checkbox"] {
   overflow-wrap: anywhere;
 }
 .document .actions {
-  margin-top: 12px;
+  margin-top: 6px;
   gap: 4px;
+}
+.document .warning {
+  margin-top: 6px;
 }
 .text-link {
   color: var(--primary);

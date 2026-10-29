@@ -63,23 +63,56 @@ it("実績の項目抽出・文字量分析の入力を照合し曖昧な対応�
   expect(out.stats[0].confidence).toBe(0.4);
   expect(out.stats[0].confirmed).toBe(false);
 });
-it("架空の実績文章を拒否", async () => {
+it("架空の実績文章を除外し警告する", async () => {
   vi.mocked(structured).mockResolvedValue({
     items: template.items,
-    stats: [{ ...stats, content: "捏造された実績文章" }],
+    stats: [stats, { ...stats, content: "捏造された実績文章" }],
     rules: [],
     warnings: [],
   });
-  expect((await POST(request())).status).toBe(422);
+  const response = await POST(request());
+  expect(response.status).toBe(200);
+  const out = await response.json();
+  expect(out.stats).toHaveLength(1);
+  expect(out.stats[0].content).toBe(stats.content);
+  expect(out.warnings[0]).toContain("捏造された実績文章");
 });
-it("存在しない項目への対応を拒否", async () => {
+it("存在しない項目への対応を除外し警告する", async () => {
   vi.mocked(structured).mockResolvedValue({
     items: template.items,
     stats: [{ ...stats, itemId: "missing" }],
     rules: [],
     warnings: [],
   });
-  expect((await POST(request())).status).toBe(422);
+  const out = await (await POST(request())).json();
+  expect(out.stats).toHaveLength(0);
+  expect(out.warnings).toHaveLength(1);
+});
+it("注意事項の資料がない場合に実績由来のルールを除外する", async () => {
+  vi.mocked(structured).mockResolvedValue({
+    items: template.items,
+    stats: [stats],
+    rules: [
+      {
+        id: "r1",
+        fileId: doc.id,
+        page: 1,
+        text: "寸法を明記する",
+        itemId: "i1",
+        kind: "required",
+        conflict: "",
+        resolved: false,
+        reviewed: false,
+      },
+    ],
+    warnings: [],
+  });
+  const response = await POST(request());
+  expect(response.status).toBe(200);
+  const out = await response.json();
+  expect(out.stats).toHaveLength(1);
+  expect(out.rules).toHaveLength(0);
+  expect(out.warnings[0]).toContain("寸法を明記する");
 });
 it("今回案件を実績分析へ混入させない", async () =>
   expect((await POST(request("current"))).status).toBe(400));
