@@ -88,9 +88,21 @@ export function SettingsView({
           <p className="small muted">
             指定した既存ファイルを参照するため、Driveの読み取り専用権限を使用します。ファイルを変更・削除する権限は要求しません。
           </p>
-          <Button asChild>
-            <a href="/api/auth/login">Google に接続・再認証</a>
-          </Button>
+          {connection.googleConfigured ? (
+            <Button asChild>
+              <a href="/api/auth/login">Google に接続・再認証</a>
+            </Button>
+          ) : (
+            <>
+              <p className="warning" role="alert">
+                サーバーに Google OAuth
+                のクライアントIDとシークレットが設定されていないため接続できません。管理者が環境変数
+                GOOGLE_CLIENT_ID と GOOGLE_CLIENT_SECRET
+                を設定し、サーバーを再起動してください。
+              </p>
+              <Button disabled>Google に接続・再認証</Button>
+            </>
+          )}
           {connection.authenticated && (
             <Button
               variant="outline"
