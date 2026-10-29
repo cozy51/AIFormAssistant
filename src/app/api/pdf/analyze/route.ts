@@ -44,6 +44,7 @@ export async function POST(req: Request) {
         `添付PDFを全ページ解析する。全${pageCount}ページのうち元ページ${start + 1}〜${end}。pageは元PDFのページ番号にする。textには読み取った全テキストを含める。見出し・帳票項目と記入内容・表・図を構造化する。スキャンも認識し、曖昧な文字/数値/図表はuncertain=trueとしてwarningsへ詳細を記載。ページを省略しない。`,
         input.model,
         Buffer.from(part.bytes),
+        s,
       );
       const pages = new Set(out.pages.map((p) => p.page));
       if (

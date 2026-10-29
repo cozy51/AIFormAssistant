@@ -34,6 +34,8 @@ export async function POST(req: Request) {
       Output,
       `過去実績から項目定義を抽出し、注意事項を解析する。既存項目がある場合はIDを維持し、意味が近い項目へ対応付けるが曖昧な対応はconfidenceを下げwarningsへ。statsは実績の項目ごとの記入文章を逐語的に記録し、構成、表現、専門用語、箇条書き傾向、記載粒度を分析する。rulesは共通ルール(itemId='')または項目IDに対応付け、必須、禁止、例、文字数、技術注意を分類する。矛盾は両方にconflictの説明を付けresolved=falseとし、勝手に選ばない。itemsの目標文字数は実績平均を参考に。すべての抽出はユーザーが後で確認する。fileIdには資料のidを正確に、pageには実在するページ番号を指定する。statsは過去実績の資料だけ、rulesは注意事項の資料だけを根拠とし、注意事項の資料がなければrulesは空にする。itemIdはitemsに含めたIDか''だけを使う。過去実績の資料: ${list("past")}。注意事項の資料: ${list("rules")}。入力JSON: ${JSON.stringify(input)}`,
       input.model,
+      undefined,
+      s,
     );
     const ids = new Set(out.items.map((i) => i.id));
     if (ids.size !== out.items.length)

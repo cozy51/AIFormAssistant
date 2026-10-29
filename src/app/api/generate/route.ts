@@ -77,6 +77,8 @@ export async function POST(req: Request) {
       ResultSchema,
       `次の項目だけの文章候補を生成する。既存のユーザー文章は変更しない。characterCountはUnicode文字数、targetCharacterCountは指定値。今回案件の資料が不足する場合はmissingInformationと文章中の「要確認」で示す。確信度は0〜1。根拠引用はtext/fields/tables/figuresから逐語引用する。資料にない数値は書かない。\n${JSON.stringify({ templateName: input.template.name, item, stats, characterAnalysis: statsFor(input.template, item.id), rules, documents: sources, instruction: input.instruction, draftText: input.draftText })}`,
       input.model,
+      undefined,
+      s,
     );
     if (result.itemId !== item.id)
       throw new AppError("AIが別の項目を返しました。再実行してください。", 422);

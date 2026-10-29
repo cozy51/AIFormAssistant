@@ -151,6 +151,14 @@ export async function guard(req: Request, heavy = false) {
   return s;
 }
 export async function body(req: Request, maxBytes = 3_000_000) {
+  const bytes = await rawBody(req, maxBytes);
+  try {
+    return JSON.parse(bytes.toString());
+  } catch {
+    throw new AppError("入力データの形式を確認してください。");
+  }
+}
+export async function rawBody(req: Request, maxBytes: number) {
   if (Number(req.headers.get("content-length")) > maxBytes)
     throw new AppError(
       "送信データが大きすぎます。資料を減らしてください。",
@@ -170,11 +178,7 @@ export async function body(req: Request, maxBytes = 3_000_000) {
     }
     chunks.push(value);
   }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString());
-  } catch {
-    throw new AppError("入力データの形式を確認してください。");
-  }
+  return Buffer.concat(chunks);
 }
 export function failure(e: unknown) {
   if (e instanceof AppError)
